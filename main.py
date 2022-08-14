@@ -1,20 +1,19 @@
 import requests
 from pprint import pprint
-import json
+import copy
 import time
 
 def get_tokenVK():
     with open('token.txt', 'r') as file_obj:
         token = file_obj.read().strip()
     return token
-
 def get_tokenYA():
     with open('tokenYA.txt', 'r') as file_obj:
         token = file_obj.read().strip()
     return token
 
 class YaUploader_fromVK:
-    def __init__(self, vk_id , token = get_tokenYA()):
+    def __init__(self, vk_id, token=get_tokenYA()):
         self.token = token
         self.id = vk_id
 
@@ -27,13 +26,13 @@ class YaUploader_fromVK:
         #     print('we got link successfully')
         return response.json()
 
-    def _get_photos(self):
+    def _get_photos(self, num = 5): # num - количество загружаемых фото
         params = {'access_token': get_tokenVK(),
                   'v': '5.131',
                   'owner_id': self.id,
                   'extended': '1',
                   'photo_sizes': '1',
-                  'album_id': 'profile',  # wall — фотографии со стены,
+                  'album_id': 'wall',  # wall — фотографии со стены,
                                        # profile — фотографии профиля,
                                        # saved — сохраненные фотографии. Возвращается только с ключом доступа пользователя.
                   'rev': '1'}
@@ -41,22 +40,25 @@ class YaUploader_fromVK:
         res = requests.get(url, params=params)
         res.raise_for_status()
         dic_photo = res.json()['response']['items']
-        pprint(dic_photo)
         result_list = []
+        count = 0
         for photo in dic_photo:
-            likes = photo['likes']['count']
-            id = photo['id']
-            sizes = photo['sizes']
-            for size in sizes:
-                if size['type'] == 'z':
-                    url_max_size_photo = size['url']
-            result_dic = {'file_name': likes, 'id_photo': id, 'url': url_max_size_photo}
+            if count == num:
+                continue
+            file_name = photo['likes']['count']
+            for photo_inf in result_list:
+                if file_name in photo_inf.values():
+                    file_name = str(file_name) + '_' + str(photo['date'])
+            max_size_dic = photo['sizes'][-1] #Максимальный размер всегда в конце списка
+            url_max_size_photo = max_size_dic['url']
+            size = str(max_size_dic['height']) + '*' + str(max_size_dic['width']) + ' type-' + max_size_dic['type']
+            result_dic = {'file_name': file_name, 'size': size, 'url': url_max_size_photo}
             result_list.append(result_dic)
-        return result_list
-
-    def get_and_upl_json(self):
+            count += 1
+        # pprint(result_list)
+        result_list_copy = copy.deepcopy(result_list)
         with open('photos_info.json', 'w') as photos_info:
-            for photo_info in self._get_photos():
+            for photo_info in result_list_copy:
                 del photo_info['url']
                 photos_info.write(str(photo_info))
         with open('photos_info.json', 'r') as photos_info:
@@ -68,10 +70,11 @@ class YaUploader_fromVK:
             else:
                 print(f'file information not loaded')
 
+        return result_list
 
-    def upload(self):
+    def upload(self, num = 5):  # num - количество загружаемых фото
         result_list = self._get_photos()
-        for num in range(len(result_list)):
+        for num in range(num):  #если нужен весь список len(result_list)
             photo_url = result_list[num]['url']
             name_file = str(result_list[num]['file_name']) + '.jpg'
 
@@ -92,7 +95,6 @@ if __name__ == '__main__':
     # id = '708212548'
     id = '1'
     uploader_photo = YaUploader_fromVK(id)
-    uploader_photo.get_json()
     uploader_photo.upload()
 
 
