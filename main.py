@@ -32,7 +32,7 @@ class YaUploader_fromVK:
                   'owner_id': self.id,
                   'extended': '1',
                   'photo_sizes': '1',
-                  'album_id': 'wall',  # wall — фотографии со стены,
+                  'album_id': 'profile',  # wall — фотографии со стены,
                                        # profile — фотографии профиля,
                                        # saved — сохраненные фотографии. Возвращается только с ключом доступа пользователя.
                   'rev': '1'}
@@ -40,6 +40,7 @@ class YaUploader_fromVK:
         res = requests.get(url, params=params)
         res.raise_for_status()
         dic_photo = res.json()['response']['items']
+        # pprint(dic_photo)
         result_list = []
         count = 0
         for photo in dic_photo:
@@ -61,14 +62,14 @@ class YaUploader_fromVK:
             for photo_info in result_list_copy:
                 del photo_info['url']
                 photos_info.write(str(photo_info))
-        with open('photos_info.json', 'r') as photos_info:
-            path_to_file = 'photo_from_VK/photos_info.json'
-            temp_upload_url = self._get_upload_link(path_to_file).get('href')
-            response = requests.put(temp_upload_url, data=open('photos_info.json', 'rb'))
-            if response.status_code == 201:
-                print(f'file information uploaded successfully')
-            else:
-                print(f'file information not loaded')
+        # path_to_file = 'photo_from_VK/photos_info.json' #Загрузит в указанный каталог Ядиска
+        path_to_file = 'photos_info.json' #Загрузит в корень Ядиска
+        temp_upload_url = self._get_upload_link(path_to_file).get('href')
+        response = requests.put(temp_upload_url, data=open('photos_info.json', 'rb'))
+        if response.status_code == 201:
+            print(f'file information uploaded successfully')
+        else:
+            print(f'file information not loaded')
 
         return result_list
 
@@ -82,7 +83,8 @@ class YaUploader_fromVK:
                 res = requests.get(photo_url)
                 photo_file.write(res.content)
 
-            path_to_file = 'photo_from_VK/' + name_file
+            # path_to_file = 'photo_from_VK/' + name_file #Загрузит в указанный каталог Ядиска
+            path_to_file = name_file #Загрузит в корень Ядиска
             temp_upload_url = self._get_upload_link(path_to_file).get('href')
             response = requests.put(temp_upload_url, data=open(name_file,'rb'))
             # print(response.raise_for_status())
